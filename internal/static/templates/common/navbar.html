@@ -1,0 +1,10 @@
+<ul class="flex items-center space-x-5">
+  {{if .Summary.HasLandingPage}}
+  <li>
+    <a class="hover:text-sky-500 dark:hover:text-sky-400" href="/">{{call .Tr "navbar::home"}}</a>
+  </li>
+  {{end}}
+  <li>
+    <a class="hover:text-sky-500 dark:hover:text-sky-400" href="https://github.com/zrcoder/mdoc">GitHub</a>
+  </li>
+</ul>

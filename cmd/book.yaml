@@ -1,0 +1,13 @@
+httpAddr: localhost
+httpPort: "9999"
+description: mdoc is a dead simple web server for markdown documentation
+docsDirectory: docs
+customDirectory: static
+hasLandingPage: true
+docsBasePath: /docs
+languages:
+  - name: en-US
+    description: English
+  - name: zh-CN
+    description: 简体中文
+editPageLinkFormat:
