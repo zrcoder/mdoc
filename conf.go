@@ -50,13 +50,10 @@ func GetConfig() *model.Config {
 		return cfg
 	}
 	cfg = &model.Config{
-		HttpAddr:        "localhost",
-		HttpPort:        "9999",
-		Description:     "mdoc is a dead simple web server for markdown documentation",
-		DocsDirectory:   "docs",
-		CustomDirectory: "static",
-		HasLandingPage:  false,
-		DocsBasePath:    "/docs",
+		HttpAddr:      "localhost",
+		HttpPort:      "9999",
+		DocsDirectory: "docs",
+		DocsBasePath:  "/docs",
 	}
 	return cfg
 }

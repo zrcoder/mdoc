@@ -2,10 +2,11 @@ package doc
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
-	"path"
+	"strings"
 
 	toc "github.com/abhinav/goldmark-toc"
 	"github.com/yuin/goldmark"
@@ -22,11 +23,15 @@ import (
 	"github.com/zrcoder/mdoc/internal/log"
 )
 
-func convertMdFile(parentUrl, localPath string) (content []byte, meta map[string]any, headings toc.Items, err error) {
+var (
+	ErrNoTitleFound = errors.New("no title found in markdown")
+)
+
+func convertMdFile(doc *Doc, parentUrl, localPath string) (err error) {
 	body, err := os.ReadFile(localPath)
 	if err != nil {
 		log.Error(err)
-		return nil, nil, nil, fmt.Errorf("read %w", err)
+		return fmt.Errorf("read %w", err)
 	}
 
 	md := goldmark.New(
@@ -51,9 +56,7 @@ func convertMdFile(parentUrl, localPath string) (content []byte, meta map[string
 	)
 
 	ctx := parser.NewContext(
-		func(cfg *parser.ContextConfig) {
-			cfg.IDs = newIDs()
-		},
+		func(cfg *parser.ContextConfig) { cfg.IDs = newIDs() },
 	)
 	node := md.Parser().Parse(text.NewReader(body), parser.WithContext(ctx))
 
@@ -61,32 +64,74 @@ func convertMdFile(parentUrl, localPath string) (content []byte, meta map[string
 	tree, err := toc.Inspect(node, body)
 	if err != nil {
 		log.Error(err)
-		return nil, nil, nil, fmt.Errorf("inspect headings %w", err)
+		return fmt.Errorf("inspect headings %w", err)
 	}
-	headings = tree.Items
+	headings := tree.Items
 	if len(headings) > 0 {
 		headings = headings[0].Items
 	}
+	doc.Headings = headings
 
 	// Links
 	err = inspectLinks(parentUrl, node)
 	if err != nil {
 		log.Error(err)
-		return nil, nil, nil, fmt.Errorf("inspect links %w", err)
+		return fmt.Errorf("inspect links %w", err)
 	}
 
 	var buf bytes.Buffer
 	err = md.Renderer().Render(&buf, body, node)
 	if err != nil {
 		log.Error(err)
-		return nil, nil, nil, fmt.Errorf("render %w", err)
+		return fmt.Errorf("render %w", err)
 	}
-
-	return buf.Bytes(), gmMeta.Get(ctx), headings, nil
+	doc.Content = buf.Bytes()
+	meta := gmMeta.Get(ctx)
+	weight, ok := meta["weight"].(int)
+	if ok {
+		doc.Weight = weight
+	}
+	doc.Title, ok = meta["title"].(string)
+	if !ok || doc.Title == "" {
+		title, err := parseTitleFromContent(body)
+		if err != nil {
+			return err
+		}
+		doc.Title = title
+		doc.HideExtraTitle = true
+	}
+	return nil
 }
 
-func inspectLinks(pathPrefix string, doc ast.Node) error {
-	return ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+// parseTitleFromContent parse the markdown content to get the title
+func parseTitleFromContent(markdownContent []byte) (string, error) {
+	const titlePrefix = "# "
+	index := bytes.Index(markdownContent, []byte(titlePrefix))
+	if index == -1 {
+		return "", ErrNoTitleFound
+	}
+	markdownContent = markdownContent[index+len(titlePrefix):]
+	index = bytes.Index(markdownContent, []byte("\n"))
+	if index == -1 {
+		return "", ErrNoTitleFound
+	}
+	line := string(markdownContent[:index])
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return "", ErrNoTitleFound
+	}
+	if line[0] == '[' {
+		index = strings.Index(line, "]")
+		if index == -1 {
+			return "", ErrNoTitleFound
+		}
+		return line[1:index], nil
+	}
+	return line, nil
+}
+
+func inspectLinks(parentUrl string, node ast.Node) error {
+	return ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
@@ -107,14 +152,12 @@ func inspectLinks(pathPrefix string, doc ast.Node) error {
 			return ast.WalkContinue, nil
 		}
 
-		//log.Infof("[test]---%s, %s", pathPrefix, link.Destination)
-		link.Destination = convertRelativeLink(pathPrefix, link.Destination)
-		//log.Infof("[test]===%s\n", link.Destination)
+		link.Destination = convertRelativeLink(parentUrl, link.Destination)
 		return ast.WalkSkipChildren, nil
 	})
 }
 
-func convertRelativeLink(pathPrefix string, link []byte) []byte {
+func convertRelativeLink(parentUrl string, link []byte) []byte {
 	var anchor []byte
 	if i := bytes.IndexByte(link, '#'); i > -1 {
 		if i == 0 {
@@ -125,20 +168,20 @@ func convertRelativeLink(pathPrefix string, link []byte) []byte {
 		link = link[:i]
 	}
 
-	// Example: _index.md => /docs/introduction
+	// _index.md => {parentUrl}
 	if bytes.EqualFold(link, []byte(indexMd)) {
-		link = append([]byte(pathPrefix), anchor...)
+		link = append([]byte(parentUrl), anchor...)
 		return link
 	}
 
-	// Example: "installation.md" => "installation"
+	// xxx.md => xxx
 	link = bytes.TrimSuffix(link, []byte(mdFileExtension))
 
-	// Example: "../howto/_index" => "../howto/"
+	// ../xxx/_index => ../xxx/
 	link = bytes.TrimSuffix(link, []byte(index))
 
-	// Example: ("/docs", "../howto/") => "/docs/howto"
-	link = []byte(path.Join(pathPrefix, string(link)))
+	// Example: ("/docs", "../howto/") => "/docs/howto" TODO
+	//link = []byte(path.Join(parentUrl, string(link)))
 
 	link = append(link, anchor...)
 	return link

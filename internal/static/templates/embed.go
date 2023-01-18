@@ -8,5 +8,5 @@ import (
 	"embed"
 )
 
-//go:embed *.html **/*.html
+//go:embed *.gohtml **/*.gohtml
 var Files embed.FS

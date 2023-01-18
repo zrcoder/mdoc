@@ -1,7 +1,6 @@
 package doc
 
 import (
-	"fmt"
 	"io/fs"
 	"path/filepath"
 	"sort"
@@ -29,10 +28,11 @@ type Doc struct {
 	UrlPath   string // the URL path
 	LocalPath string // local path with .md extension
 
-	Weight   int    // in md front matter, used to sort docs
-	Title    string // in md front matter, used to sort docs, render TOC and so on
-	Content  []byte
-	Headings toc.Items // if Title is empty, use Headings[0].Title
+	Weight         int    // in md front matter, used to sort docs
+	Title          string // in md front matter, used to sort docs, render TOC and so on
+	HideExtraTitle bool   // when there is no title in the front matter, we get title in content and not add extra title
+	Content        []byte
+	Headings       toc.Items // if Title is empty, use Headings[0].Title
 
 	Groups   []*Doc
 	Pages    []*Doc
@@ -58,7 +58,7 @@ func (d *Doc) memo(m map[string]*Doc) {
 
 func (d *Doc) sort() {
 	less := func(a, b *Doc) bool {
-		return a.Weight > b.Weight || a.Weight == b.Weight && a.Title < b.Title
+		return a.Weight < b.Weight || a.Weight == b.Weight && a.Title < b.Title
 	}
 	sort.Slice(d.Pages, func(i, j int) bool {
 		return less(d.Pages[i], d.Pages[j])
@@ -76,6 +76,9 @@ func (d *Doc) link(baseUrl string) {
 	var dfs func(*Doc)
 	dfs = func(doc *Doc) {
 		for _, g := range doc.Groups {
+			if len(g.Content) != 0 {
+				pre = g
+			}
 			dfs(g)
 		}
 		for _, p := range doc.Pages {
@@ -138,17 +141,13 @@ func parseDoc(doc *Doc, vis map[string]bool) error {
 			doc.Groups = append(doc.Groups, group)
 			indexPath := filepath.Join(path, indexMd)
 			if osutil.IsFile(indexPath) {
-				err = adaptDoc(group, indexPath, doc.UrlPath)
+				err = convertMdFile(group, doc.UrlPath, indexPath)
 				if err != nil {
 					return err
 				}
 
 			}
-			err = parseDoc(group, vis)
-			if err != nil {
-				return err
-			}
-			return nil
+			return parseDoc(group, vis)
 		}
 
 		name := d.Name()
@@ -163,37 +162,13 @@ func parseDoc(doc *Doc, vis map[string]bool) error {
 			LocalPath: path,
 		}
 		doc.Pages = append(doc.Pages, page)
-		return adaptDoc(page, path, doc.UrlPath)
+		return convertMdFile(page, doc.UrlPath, path)
 	})
 
 	if err != nil {
 		log.Error(err)
 		return err
 	}
-	return nil
-}
-
-func adaptDoc(doc *Doc, localPath, parentUrlPath string) error {
-	content, meta, headings, err := convertMdFile(parentUrlPath, localPath)
-	if err != nil {
-		return err
-	}
-	doc.Content = content
-	doc.Headings = headings
-	weight, ok := meta["weight"].(int)
-	if ok {
-		doc.Weight = weight
-	}
-	doc.Title, ok = meta["title"].(string)
-	if !ok || doc.Title == "" {
-		if len(doc.Headings) == 0 {
-			err = fmt.Errorf("no title found for %s", doc.LocalPath)
-			log.Error(err)
-			return err
-		}
-		doc.Title = string(doc.Headings[0].Title)
-	}
-
 	return nil
 }
 

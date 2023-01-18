@@ -1,6 +1,5 @@
 ---
 title: Introduction
-weight: 1
 ---
 
 _**ASoulDocs**_ is a stupid web server for multilingual documentation.

@@ -13,7 +13,6 @@ import (
 	"github.com/flamego/template"
 
 	"github.com/zrcoder/mdoc/internal/doc"
-	"github.com/zrcoder/mdoc/internal/log"
 	"github.com/zrcoder/mdoc/internal/model"
 	"github.com/zrcoder/mdoc/internal/static"
 	si18n "github.com/zrcoder/mdoc/internal/static/i18n"
@@ -26,12 +25,10 @@ const (
 )
 
 func Serve(cfg *model.Config) error {
-	docStore, err := doc.New(cfg)
+	docMgr, err := doc.New(cfg)
 	if err != nil {
 		return err
 	}
-
-	languages := cfg.I18nLanguages()
 
 	f := flamego.New()
 	f.Use(flamego.Recovery())
@@ -41,12 +38,13 @@ func Serve(cfg *model.Config) error {
 	f.Use(docsDirMiddleware(cfg.DocsBasePath))
 	f.Use(builtinStaticMiddleware())
 	f.Use(templateMiddleware(cfg))
+	languages := cfg.I18nLanguages()
 	f.Use(i18nMiddleware(languages))
 	f.Use(pageMiddleware(cfg, languages))
 
 	f.Get("/", homeHandler(cfg))
-	f.Get(cfg.DocsBasePath+"/?{**}", pageHandler(docStore))
-	f.Any("/webhook", webhookHandler(docStore))
+	f.Get(cfg.DocsBasePath+"/?{**}", pageHandler(docMgr))
+	f.Any("/webhook", webhookHandler(docMgr))
 	f.NotFound(notFound)
 
 	listenAddr := fmt.Sprintf("%s:%s", cfg.HttpAddr, cfg.HttpPort)
@@ -74,7 +72,7 @@ func builtinStaticMiddleware() flamego.Handler {
 }
 
 func templateMiddleware(cfg *model.Config) flamego.Handler {
-	fs, err := template.EmbedFS(templates.Files, ".", []string{".html"})
+	fs, err := template.EmbedFS(templates.Files, ".", []string{".gohtml"})
 	if err != nil {
 		return err
 	}
@@ -122,48 +120,46 @@ func notFound(t template.Template, data template.Data, locale i18n.Locale) {
 	t.HTML(http.StatusNotFound, "404")
 }
 
-func pageHandler(docStore *doc.Store) flamego.Handler {
+func pageHandler(docMgr *doc.Manager) flamego.Handler {
 	return func(ctx flamego.Context, t template.Template, data template.Data, locale i18n.Locale) {
 		current := ctx.Param("**")
 		if current == "" || current == "/" {
-			ctx.Redirect(cfg.DocsBasePath + "/" + docStore.FirstDocPath())
+			ctx.Redirect(cfg.DocsBasePath + "/" + docMgr.FirstDocPath())
 			return
 		}
 
-		log.Info("current:", current)
-
 		if flamego.Env() == flamego.EnvTypeDev {
-			err := docStore.Reload()
+			err := docMgr.Reload()
 			if err != nil {
-				panic("reload store: " + err.Error())
+				panic("reload docs: " + err.Error())
 			}
 		}
 
 		data["Current"] = current
-		data["RootDoc"] = docStore.Doc(locale.Lang())
+		data["RootDoc"] = docMgr.Doc(locale.Lang())
 
-		doc, fallback, err := docStore.Match(locale.Lang(), current)
+		matchedDoc, fallback, err := docMgr.Match(locale.Lang(), current)
 		if err != nil {
 			notFound(t, data, locale)
 			return
 		}
 
 		data["Fallback"] = fallback
-		data["Category"] = doc.Category
-		data["Title"] = doc.Title + " - " + locale.Translate("name")
-		data["Doc"] = doc // TODO
+		data["Category"] = matchedDoc.Category
+		data["Title"] = matchedDoc.Title + " - " + locale.Translate("name")
+		data["Doc"] = matchedDoc
 
 		if cfg.EditPageLinkFormat != "" {
-			blob := strings.TrimPrefix(doc.LocalPath, cfg.DocsBasePath+"/")
+			blob := strings.TrimPrefix(matchedDoc.LocalPath, cfg.DocsBasePath+"/")
 			data["EditLink"] = strings.Replace(cfg.EditPageLinkFormat, "{blob}", blob, 1)
 		}
 		t.HTML(http.StatusOK, "docs/page")
 	}
 }
 
-func webhookHandler(docStore *doc.Store) flamego.Handler {
+func webhookHandler(docMgr *doc.Manager) flamego.Handler {
 	return func(w http.ResponseWriter) {
-		err := docStore.Reload()
+		err := docMgr.Reload()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(map[string]any{

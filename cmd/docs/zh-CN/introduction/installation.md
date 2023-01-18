@@ -2,8 +2,6 @@
 title: 下载安装
 ---
 
-这里有个链接： [test](./quick-start.md)
-
 ## 二进制安装
 
 请通过 [GitHub releases](https://github.com/asoul-sig/asouldocs/releases) 页面获取各个版本的二进制文件。

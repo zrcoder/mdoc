@@ -10,8 +10,7 @@ import (
 )
 
 func main() {
-	log.SetFlags(log.Lshortfile)
-	//mdoc.DisableLog()
+	mdoc.EnableLog()
 
 	app := cli.App{
 		Name:   "mdoc",
@@ -38,13 +37,5 @@ func action(ctx *cli.Context) error {
 	}
 	cfg := mdoc.GetConfig()
 	log.Printf("Serving on http://%s:%s\n", cfg.HttpAddr, cfg.HttpPort)
-	/*
-		data, _ := yaml.Marshal(cfg)
-		fmt.Printf("==== yaml cfg:\n%s\n", data)
-		data, _ = toml.Marshal(cfg)
-		fmt.Printf("==== toml cfg:\n%s\n", data)
-		data, _ = json.MarshalIndent(cfg, "", "  ")
-		fmt.Printf("==== json cfg:\n%s\n", data)
-	*/
 	return mdoc.Serve(cfg)
 }
