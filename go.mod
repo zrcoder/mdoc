@@ -7,7 +7,6 @@ require (
 	github.com/flamego/flamego v1.7.0
 	github.com/flamego/i18n v1.1.0
 	github.com/flamego/template v1.1.0
-	github.com/pelletier/go-toml/v2 v2.0.6
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
