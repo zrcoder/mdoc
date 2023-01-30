@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 
 	toc "github.com/abhinav/goldmark-toc"
@@ -180,8 +181,8 @@ func convertRelativeLink(parentUrl string, link []byte) []byte {
 	// ../xxx/_index => ../xxx/
 	link = bytes.TrimSuffix(link, []byte(index))
 
-	// Example: ("/docs", "../howto/") => "/docs/howto" TODO
-	//link = []byte(path.Join(parentUrl, string(link)))
+	// Example: ("/docs", "../howto/") => "/docs/howto" TODO: test
+	link = []byte(path.Join(parentUrl, string(link)))
 
 	link = append(link, anchor...)
 	return link

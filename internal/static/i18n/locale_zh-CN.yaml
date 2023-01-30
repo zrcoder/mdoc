@@ -1,0 +1,20 @@
+name: "mdoc"
+tag_line: "一款支持多语言的 Web 书籍服务器"
+navbar:
+  home: "首页"
+home:
+  title: "MDOC"
+  tag_line: "一款支持多语言的 Web 书籍服务器"
+  get_started: "开始阅读"
+docs:
+  pages: "页面"
+  showing_default: "您所查看的文档没有与当前语言匹配的版本，因此我们将显示默认语言版本。"
+  on_this_page: "页内导航"
+  edit_this_page: "编辑本页内容"
+status:
+  404: "页面未找到"
+  404_desc: "页面不存在"
+footer:
+  languages: "语言选项"
+alert:
+  warning: "温馨提示"

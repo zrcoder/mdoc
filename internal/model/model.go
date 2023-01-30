@@ -11,6 +11,7 @@ type Config struct {
 	DocsDirectory      string     `json:"docsDirectory,omitempty" yaml:"docsDirectory,omitempty" toml:"docsDirectory,omitempty"`
 	CustomDirectory    string     `json:"customDirectory,omitempty" yaml:"customDirectory,omitempty" toml:"customDirectory,omitempty"`
 	HasLandingPage     bool       `json:"hasLandingPage,omitempty" yaml:"hasLandingPage,omitempty" toml:"hasLandingPage,omitempty"`
+	HasNavBar          bool       `json:"hasNavBar,omitempty" yaml:"hasNavBar,omitempty" toml:"hasNavBar,omitempty"`
 	DocsBasePath       string     `json:"docsBasePath,omitempty" yaml:"docsBasePath,omitempty" toml:"docsBasePath,omitempty"`
 	EditPageLinkFormat string     `json:"editPageLinkFormat,omitempty" yaml:"editPageLinkFormat,omitempty" toml:"editPageLinkFormat,omitempty"`
 	Languages          []Language `json:"languages,omitempty" yaml:"languages,omitempty" toml:"languages,omitempty"`

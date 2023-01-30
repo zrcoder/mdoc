@@ -10,6 +10,8 @@ docsDirectory: docs
 customDirectory: static
 # Whether the site has a landing page, set to "false" to redirect users for documentation directly
 hasLandingPage: true
+# Whether the pages have a navigation bar
+hasNavBar: true
 # The url base path for documentation, start with '/' and cannot be empty
 docsBasePath: /docs
 # The list of languages that is supported

@@ -43,7 +43,7 @@ func Serve(cfg *model.Config) error {
 	f.Use(pageMiddleware(cfg, languages))
 
 	f.Get("/", homeHandler(cfg))
-	f.Get(cfg.DocsBasePath+"/?{**}", pageHandler(docMgr))
+	f.Get(cfg.DocsBasePath+"/?{**}", pageHandler(cfg, docMgr))
 	f.Any("/webhook", webhookHandler(docMgr))
 	f.NotFound(notFound)
 
@@ -115,12 +115,13 @@ func homeHandler(cfg *model.Config) flamego.Handler {
 	}
 }
 
-func notFound(t template.Template, data template.Data, locale i18n.Locale) {
+func notFound(cfg *model.Config, t template.Template, data template.Data, locale i18n.Locale) {
 	data["Title"] = locale.Translate("status::404")
+	data["HasNavBar"] = cfg.HasNavBar
 	t.HTML(http.StatusNotFound, "404")
 }
 
-func pageHandler(docMgr *doc.Manager) flamego.Handler {
+func pageHandler(cfg *model.Config, docMgr *doc.Manager) flamego.Handler {
 	return func(ctx flamego.Context, t template.Template, data template.Data, locale i18n.Locale) {
 		current := ctx.Param("**")
 		if current == "" || current == "/" {
@@ -135,12 +136,13 @@ func pageHandler(docMgr *doc.Manager) flamego.Handler {
 			}
 		}
 
+		data["HasNavBar"] = cfg.HasNavBar
 		data["Current"] = current
 		data["RootDoc"] = docMgr.Doc(locale.Lang())
 
 		matchedDoc, fallback, err := docMgr.Match(locale.Lang(), current)
 		if err != nil {
-			notFound(t, data, locale)
+			notFound(cfg, t, data, locale)
 			return
 		}
 
