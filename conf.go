@@ -38,8 +38,8 @@ func InitWithFile(customConfigFile string) (err error) {
 	}
 	current.DocsBasePath = strings.TrimRight(current.DocsBasePath, "/")
 	log.Info(current.DocsBasePath)
-	if current.DocsBasePath == "" || current.DocsBasePath[0] != '/' {
-		return errors.New("invalid docsBasePath, should start with '/' and cannot be empty")
+	if current.DocsBasePath != "" && current.DocsBasePath[0] != '/' {
+		return errors.New("invalid docsBasePath, should start with '/'")
 	}
 	cfg = current
 	return nil
@@ -53,7 +53,6 @@ func GetConfig() *model.Config {
 		HttpAddr:      "localhost",
 		HttpPort:      "9999",
 		DocsDirectory: "docs",
-		DocsBasePath:  "/docs",
 	}
 	return cfg
 }

@@ -12,7 +12,7 @@ customDirectory: static
 hasLandingPage: true
 # Whether the pages have a navigation bar
 hasNavBar: true
-# The url base path for documentation, start with '/' and cannot be empty
+# The url base path for documentation, start with '/', can be empty
 docsBasePath: /docs
 # The list of languages that is supported
 languages:

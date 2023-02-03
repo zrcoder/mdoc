@@ -40,10 +40,17 @@ func Serve(cfg *model.Config) error {
 	f.Use(templateMiddleware(cfg))
 	languages := cfg.I18nLanguages()
 	f.Use(i18nMiddleware(languages))
-	f.Use(pageMiddleware(cfg, languages))
+	f.Use(pageMiddleware(cfg, docMgr, languages))
 
-	f.Get("/", homeHandler(cfg))
-	f.Get(cfg.DocsBasePath+"/?{**}", pageHandler(cfg, docMgr))
+	if cfg.HasLandingPage {
+		f.Get("/", homeHandler(cfg))
+	}
+
+	pagePathPatten := "/{**}"
+	if cfg.DocsBasePath != "" {
+		pagePathPatten = cfg.DocsBasePath + "/?{**}"
+	}
+	f.Get(pagePathPatten, pageHandler(cfg, docMgr))
 	f.Any("/webhook", webhookHandler(docMgr))
 	f.NotFound(notFoundHandler(cfg))
 
@@ -93,9 +100,10 @@ func i18nMiddleware(languages []i18n.Language) flamego.Handler {
 	return i18n.I18n(option)
 }
 
-func pageMiddleware(cfg *model.Config, languages []i18n.Language) flamego.Handler {
+func pageMiddleware(cfg *model.Config, docMgr *doc.Manager, languages []i18n.Language) flamego.Handler {
 	return func(req *http.Request, data template.Data, locale i18n.Locale) {
 		data["Summary"] = cfg
+		data["FirstDocPath"] = docMgr.FirstDocPath
 		data["Tr"] = locale.Translate
 		data["Lang"] = locale.Lang()
 		data["Languages"] = languages
@@ -126,7 +134,7 @@ func notFoundHandler(cfg *model.Config) func(t template.Template, data template.
 func pageHandler(cfg *model.Config, docMgr *doc.Manager) flamego.Handler {
 	return func(ctx flamego.Context, t template.Template, data template.Data, locale i18n.Locale) {
 		current := ctx.Param("**")
-		if current == "" || current == "/" {
+		if current == "" || current == "/" && !cfg.HasLandingPage {
 			ctx.Redirect(cfg.DocsBasePath + "/" + docMgr.FirstDocPath())
 			return
 		}
