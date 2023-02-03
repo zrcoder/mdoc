@@ -7,9 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	logger *logrus.Logger
-)
+var logger *logrus.Logger
 
 func Enable() {
 	logger = newLogger()
@@ -18,12 +16,15 @@ func Enable() {
 func Info(v ...any) {
 	trace(func() { logger.Infoln(v...) })
 }
+
 func Infof(format string, v ...any) {
 	trace(func() { logger.Infof(format, v...) })
 }
+
 func Error(v ...any) {
 	trace(func() { logger.Error(v...) })
 }
+
 func Errorf(format string, v ...any) {
 	trace(func() { logger.Errorf(format, v...) })
 }

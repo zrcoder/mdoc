@@ -164,7 +164,6 @@ func parseDoc(doc *Doc, vis map[string]bool) error {
 		doc.Pages = append(doc.Pages, page)
 		return convertMdFile(page, doc.UrlPath, path)
 	})
-
 	if err != nil {
 		log.Error(err)
 		return err

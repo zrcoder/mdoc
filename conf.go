@@ -2,9 +2,7 @@ package mdoc
 
 import (
 	"errors"
-	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -23,10 +21,7 @@ func InitWithFile(customConfigFile string) (err error) {
 	if customConfigFile == "" {
 		return nil
 	}
-	customConfigFile, err = filepath.Abs(customConfigFile)
-	if err != nil {
-		return fmt.Errorf("get absolute path: %w", err)
-	}
+
 	data, err := os.ReadFile(customConfigFile)
 	if err != nil {
 		return err
@@ -38,8 +33,8 @@ func InitWithFile(customConfigFile string) (err error) {
 	}
 	current.DocsBasePath = strings.TrimRight(current.DocsBasePath, "/")
 	log.Info(current.DocsBasePath)
-	if current.DocsBasePath == "" || current.DocsBasePath[0] != '/' {
-		return errors.New("invalid docsBasePath, should start with '/' and cannot be empty")
+	if current.DocsBasePath != "" && current.DocsBasePath[0] != '/' {
+		return errors.New("invalid docsBasePath, should start with '/'")
 	}
 	cfg = current
 	return nil
@@ -52,8 +47,7 @@ func GetConfig() *model.Config {
 	cfg = &model.Config{
 		HttpAddr:      "localhost",
 		HttpPort:      "9999",
-		DocsDirectory: "docs",
-		DocsBasePath:  "/docs",
+		DocsDirectory: ".",
 	}
 	return cfg
 }

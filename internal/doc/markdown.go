@@ -24,9 +24,7 @@ import (
 	"github.com/zrcoder/mdoc/internal/log"
 )
 
-var (
-	ErrNoTitleFound = errors.New("no title found in markdown")
-)
+var ErrNoTitleFound = errors.New("no title found in markdown")
 
 func convertMdFile(doc *Doc, parentUrl, localPath string) (err error) {
 	body, err := os.ReadFile(localPath)
