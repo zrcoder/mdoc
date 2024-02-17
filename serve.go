@@ -43,7 +43,7 @@ func Serve(cfg *model.Config) error {
 	f.Use(pageMiddleware(cfg, docMgr, languages))
 
 	if cfg.HasLandingPage {
-		f.Get("/", homeHandler(cfg))
+		f.Get("/", homeHandler(cfg, docMgr))
 	}
 
 	pagePathPatten := "/{**}"
@@ -103,7 +103,9 @@ func i18nMiddleware(languages []i18n.Language) flamego.Handler {
 func pageMiddleware(cfg *model.Config, docMgr *doc.Manager, languages []i18n.Language) flamego.Handler {
 	return func(req *http.Request, data template.Data, locale i18n.Locale) {
 		data["Summary"] = cfg
-		data["FirstDocPath"] = docMgr.FirstDocPath
+		data["FirstDocPath"] = func() string {
+			return cfg.DocsBasePath + "/" + docMgr.FirstDocPath()
+		}
 		data["Tr"] = locale.Translate
 		data["Lang"] = locale.Lang()
 		data["Languages"] = languages
@@ -112,13 +114,16 @@ func pageMiddleware(cfg *model.Config, docMgr *doc.Manager, languages []i18n.Lan
 	}
 }
 
-func homeHandler(cfg *model.Config) flamego.Handler {
+func homeHandler(cfg *model.Config, docMgr *doc.Manager) flamego.Handler {
 	return func(ctx flamego.Context, t template.Template, data template.Data, locale i18n.Locale) {
 		if !cfg.HasLandingPage {
 			ctx.Redirect(cfg.DocsBasePath)
 			return
 		}
 		data["Title"] = locale.Translate("name") + " - " + locale.Translate("tag_line")
+		data["FirstDocPath"] = func() string {
+			return cfg.DocsBasePath + "/" + docMgr.FirstDocPath()
+		}
 		t.HTML(http.StatusOK, "home")
 	}
 }

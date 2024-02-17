@@ -1,6 +1,7 @@
 package doc
 
 import (
+	"os"
 	"sync"
 	"sync/atomic"
 
@@ -16,7 +17,7 @@ type Manager struct {
 	// The list of config values
 	languages   []string
 	baseURLPath string
-	rootDir     string
+	docDir      string
 
 	// The list of inferred values
 	defaultLanguage string
@@ -32,13 +33,21 @@ func New(cfg *model.Config) (*Manager, error) {
 	for i, v := range i18nLanguages {
 		languages[i] = v.Name
 	}
+	docDir := cfg.DocsDirectory
+	var err error
+	if docDir == "" {
+		docDir, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+	}
 	s := &Manager{
 		languages:       languages,
 		baseURLPath:     cfg.DocsBasePath,
 		defaultLanguage: languages[0],
-		rootDir:         cfg.DocsDirectory,
+		docDir:          docDir,
 	}
-	err := s.Reload()
+	err = s.Reload()
 	if err != nil {
 		return nil, errors.Wrap(err, "reload")
 	}
@@ -49,12 +58,12 @@ func New(cfg *model.Config) (*Manager, error) {
 func (s *Manager) Reload() error {
 	s.reloadLock.Lock()
 	defer s.reloadLock.Unlock()
-	if !osutil.IsDir(s.rootDir) {
-		log.Error("not exist nor is dir:", s.rootDir)
-		return errors.Errorf("directory root %q does not exist", s.rootDir)
+	if !osutil.IsDir(s.docDir) {
+		log.Error("not exist nor is dir:", s.docDir)
+		return errors.Errorf("directory root %q does not exist", s.docDir)
 	}
 
-	docs, err := parseDocs(s.rootDir, s.languages, s.baseURLPath)
+	docs, err := parseDocs(s.docDir, s.languages, s.baseURLPath)
 	if err != nil {
 		return errors.Wrap(err, "init doc")
 	}
